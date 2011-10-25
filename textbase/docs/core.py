@@ -17,7 +17,41 @@ class Field(object):
     Represents a document property. Instances should be attached to
     Document subclasses as attributes.
     """
-    pass
+
+    # if we increment this when Field objects are created then we can
+    # track the relative order they are created in: which is also the
+    # order they are "declared" on (attached to) a document class
+    creation_counter = 0
+    
+    def __init__(self):
+        self.ordinal = Field.creation_counter = Field.creation_counter + 1
+        
+    def attach_to_class(self, cls, name):
+        """
+        Set the name of the attribute by which this field is attached to
+        a Document class.
+        """
+        self.name = name
+
+
+class DocumentType(type):
+    """
+    Manages the creation of Document classes to consolidate the links
+    between each class and it's Field objects.
+    """
+
+    def __init__(cls, name, bases, attributes):
+        """
+        Add a list of the attached fields in the same order as declared
+        on the class. Provide each field with the name of the attribute
+        by which it is attached to the class.
+        """
+        cls._fields = []
+        for name, attribute in attributes.items():
+            if hasattr(attribute, 'attach_to_class'):
+                attribute.attach_to_class(cls, name)
+                cls._fields.append(attribute)
+        cls._fields.sort(key=lambda field: field.ordinal)
     
 
 class Document(object):
@@ -30,4 +64,29 @@ class Document(object):
         
             my_field = Field()
     """
-    pass
+
+    __metaclass__ = DocumentType
+    
+    def __init__(self, *args, **kwargs):
+        # are there too many arguments?
+        if len(args) > len(self._fields):
+            msg = '__init__() takes %d arguments at most (%d given)'
+            raise TypeError(msg % (len(self._fields), len(args)))
+
+        field_names = [field.name for field in self._fields]
+            
+        # have arguments been provided for non-existent fields?
+        for name in kwargs:
+            if name not in field_names:
+                msg = "__init__() does not take keyword argument '%s'"
+                raise TypeError(msg % name)
+       
+        # have any fields been defined as both argument and keyword argument?
+        for i, name in enumerate(field_names[:len(args)]):
+            if name in kwargs:
+                msg = "__init__() received multiple values for '%s' argument"
+                raise TypeError(msg % name)
+            kwargs[name] = args[i]
+            
+        for name in kwargs:
+            setattr(self, name, kwargs[name])
