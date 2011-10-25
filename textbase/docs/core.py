@@ -18,6 +18,39 @@ class Field(object):
     Document subclasses as attributes.
     """
 
+    class Attribute(object):
+        """
+        Descriptor to manage assigning and retrieving field values.
+        """
+        
+        def __init__(self, field):
+            """
+            field -- The field object to manage
+            """
+            self.field = field
+            
+        def __get__(self, document, owner):
+            """
+            Return the current value for the managed field on the
+            specified Document object. Return a default value (which is
+            recalculated on each access) if no value has been set.
+            """
+            if not document:
+                # trying to access Field object rather than the value
+                # of the field for a particular document
+                return self.field
+            value = document.__dict__.get(self.field.name, None)
+            if value is None:
+                value = self.field.default_value(document)
+            return value
+            
+        def __set__(self, document, value):
+            """
+            Assign the specified value for the managed field on the
+            specified Document object.
+            """
+            document.__dict__[self.field.name] = value
+
     # if we increment this when Field objects are created then we can
     # track the relative order they are created in: which is also the
     # order they are "declared" on (attached to) a document class
@@ -30,6 +63,7 @@ class Field(object):
         """
         self.ordinal = Field.creation_counter = Field.creation_counter + 1
         self.initial_value = initial_value
+        self._defaulter = lambda doc: None
         
     def attach_to_class(self, cls, name):
         """
@@ -37,6 +71,28 @@ class Field(object):
         a Document class.
         """
         self.name = name
+        # use an Attribute to manage assigning and retrieving values
+        setattr(cls, name, Field.Attribute(self))
+
+    def defaulter(self, function):
+        """
+        Set the function used to generate a default value. The specified
+        function will be passed the Document instance and may refer to
+        other properties of that document (e.g. a "title" field which
+        defaults to a modified version of a "url" field).
+        
+        N.B. This is intended to be used as a decorator on the attached
+        Document (e.g. @name_of_field.defaulter).
+        """
+        self._defaulter = function
+        return function
+        
+    def default_value(self, document):
+        """
+        Return the default value for this field on the specified
+        Document.
+        """
+        return self._defaulter(document)
 
 
 class DocumentType(type):

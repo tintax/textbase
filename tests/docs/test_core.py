@@ -125,3 +125,22 @@ class TestModule(unittest.TestCase):
         doc = Doc()
         self.assertEqual(doc.foo, 'bar')
         self.assertIsNone(doc.absent)
+        
+    def test_calculate_default_value_for_field_with_no_value(self):
+        """
+        Check that a field attempts to calculate a default value when
+        no value (including an initial value) has been set if the
+        document has a suitable function to do so.
+        """
+        class Doc(Document):
+            title = Field(initial_value='Untitled')
+            url = Field()
+            
+            @url.defaulter
+            def get_default_url(self):
+                return self.title.lower()
+                
+        doc = Doc()
+        self.assertEqual(doc.url, 'untitled')
+        doc.title = 'FooBar'
+        self.assertEqual(doc.url, 'foobar')
