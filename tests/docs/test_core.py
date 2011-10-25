@@ -111,4 +111,17 @@ class TestModule(unittest.TestCase):
             three = Field()
             
         with self.assertRaisesRegexp(TypeError, 'one'):
-            doc = Doc('foo', one='bar')            
+            doc = Doc('foo', one='bar')  
+            
+    def test_set_field_to_initial_value_if_not_explicitly_set(self):
+        """
+        Check field is set to an initial value (which defaults to None)
+        if no explicit value is passed to the document constructor.
+        """
+        class Doc(Document):
+            foo = Field(initial_value='bar')
+            absent = Field()
+            
+        doc = Doc()
+        self.assertEqual(doc.foo, 'bar')
+        self.assertIsNone(doc.absent)

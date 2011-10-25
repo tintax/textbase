@@ -23,8 +23,13 @@ class Field(object):
     # order they are "declared" on (attached to) a document class
     creation_counter = 0
     
-    def __init__(self):
+    def __init__(self, initial_value=None):
+        """
+        initial_value -- Value to set this field to when the associated
+                         Document class is instantiated
+        """
         self.ordinal = Field.creation_counter = Field.creation_counter + 1
+        self.initial_value = initial_value
         
     def attach_to_class(self, cls, name):
         """
@@ -88,5 +93,8 @@ class Document(object):
                 raise TypeError(msg % name)
             kwargs[name] = args[i]
             
-        for name in kwargs:
-            setattr(self, name, kwargs[name])
+        for field in self._fields:
+            if field.name in kwargs:
+                setattr(self, field.name, kwargs[field.name])
+            else:
+                setattr(self, field.name, field.initial_value)
