@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import validators
+
 class Error(Exception):
     """Base class for exceptions in this module."""
     pass
@@ -88,15 +90,20 @@ class Field(object):
     # order they are "declared" on (attached to) a document class
     creation_counter = 0
     
-    def __init__(self, initial_value=None):
+    def __init__(self, initial_value=None, required=False):
         """
         initial_value -- Value to set this field to when the associated
                          Document class is instantiated
+        required -- Does this field require a value for the document to
+                    be valid?
         """
         self.ordinal = Field.creation_counter = Field.creation_counter + 1
         self.initial_value = initial_value
+        self.required = required
         self._defaulter = lambda doc: None
         self._validators = []
+        if self.required:
+            self._validators.append(validators.required)
         
     def attach_to_class(self, cls, name):
         """

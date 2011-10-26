@@ -210,3 +210,14 @@ class TestModule(unittest.TestCase):
         self.assertEqual(len(cm.exception.args), 2)
         self.assertIsInstance(cm.exception.args[0], ValidationError)
         self.assertIsInstance(cm.exception.args[1], ValidationError)
+        
+    def test_required_field_is_set(self):
+        """
+        Check a required field without a value fails validation.
+        """
+        class Doc(Document):
+            foo = Field(required=True)
+            
+        doc = Doc()
+        with self.assertRaises(InvalidDocument):
+            doc.validate()
