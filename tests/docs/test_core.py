@@ -159,3 +159,54 @@ class TestModule(unittest.TestCase):
         self.assertEqual(doc.url, 'untitled')
         doc.title = 'FooBar'
         self.assertEqual(doc.url, 'foobar')
+        
+    def test_field_validator(self):
+        """
+        Check we can define a validation function for a field on the
+        containing document - and this is evaluated during validation.
+        """
+        class Doc(Document):
+            title = Field()
+            
+            @title.validator
+            def validate_title_is_at_least_six_characters(value):
+                if len(value) < 6:
+                    raise ValueError('not six chars')
+                    
+        doc = Doc(title='1234567')
+        doc.validate()  # no exceptions raised
+        doc.title = '123'
+        with self.assertRaises(InvalidDocument) as cm:
+            doc.validate()
+        # exception should consist of a single ValidationError for
+        # the title field
+        self.assertEqual(len(cm.exception.args), 1)
+        self.assertIsInstance(cm.exception.args[0], ValidationError)
+        self.assertEqual(cm.exception.args[0].field, 'title')
+        self.assertEqual(cm.exception.args[0].msg, 'not six chars')
+        
+    def test_multiple_field_validators(self):
+        """
+        Check we can define multiple validators - and each is evaluated
+        (regardless of previous results).
+        """
+        class Doc(Document):
+            title = Field()
+            
+            @title.validator
+            def validate_title_is_at_least_six_characters(value):
+                if len(value) < 6:
+                    raise ValueError('not six chars')
+                    
+            @title.validator
+            def validate_title_is_alphabetic(value):
+                if not value.isalpha():
+                    raise ValueError('not alphabetic')
+                    
+        doc = Doc('123')
+        with self.assertRaises(InvalidDocument) as cm:
+            doc.validate()
+        # exception should consist of two ValidationError objects
+        self.assertEqual(len(cm.exception.args), 2)
+        self.assertIsInstance(cm.exception.args[0], ValidationError)
+        self.assertIsInstance(cm.exception.args[1], ValidationError)

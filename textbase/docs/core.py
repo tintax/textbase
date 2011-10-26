@@ -15,6 +15,20 @@
 class Error(Exception):
     """Base class for exceptions in this module."""
     pass
+
+
+class ValidationError(Error):
+    """Raised when a validation check fails."""
+
+    def __init__(self, field, msg):
+        self.field = field
+        self.msg = msg
+    
+    def __str__(self):
+        return '[%s] %s' % (self.field, self.msg)
+        
+    def __repr__(self):
+        return '%s(%r, %r)' % (self.__class__.__name__, self.field, self.msg)
     
     
 class InvalidDocument(Error):
@@ -82,6 +96,7 @@ class Field(object):
         self.ordinal = Field.creation_counter = Field.creation_counter + 1
         self.initial_value = initial_value
         self._defaulter = lambda doc: None
+        self._validators = []
         
     def attach_to_class(self, cls, name):
         """
@@ -112,6 +127,27 @@ class Field(object):
         """
         return self._defaulter(document)
 
+    def validator(self, function):
+        """
+        Add a function to the set used to validate fields. The specified
+        function will be passed the candidate value and should raise a
+        ValueError if it cannot be validated.
+        """
+        self._validators.append(function)
+        
+    def validate(self, value):
+        """
+        Check the specified value is valid for this field. Raise a
+        ValidationError if not.
+        """
+        errors = []
+        for validator in self._validators:
+            try:
+                validator(value)
+            except ValueError as e:
+                errors.append(ValidationError(self.name, str(e)))
+        return errors
+        
 
 class DocumentType(type):
     """
@@ -177,3 +213,18 @@ class Document(object):
                 
         if errors:
             raise InvalidDocument(*errors)
+            
+    def validate(self):
+        """
+        Check the current state represents a valid document. This
+        includes running the field validation checks.
+        
+        Raise an InvalidDocument error if the document cannot be
+        validated.
+        """
+        errors = []
+        for field in self._fields:
+            errors.extend(field.validate(getattr(self, field.name)))
+        if errors:
+            raise InvalidDocument(*errors)
+
