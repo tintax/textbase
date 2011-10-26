@@ -12,6 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+class Error(Exception):
+    """Base class for exceptions in this module."""
+    pass
+    
+    
+class InvalidDocument(Error):
+    """
+    Raised when a document is (or would be created in) an invalid
+    state.
+    
+    N.B. This should be instantiated with either a single string
+    argument (a useful and human readable message about the error) or
+    multiple arguments that can be stringified (e.g. other exceptions)
+    if there are multiple reasons why the document is invalid.
+    """
+    pass
+    
+
 class Field(object):
     """
     Represents a document property. Instances should be attached to
@@ -129,10 +147,12 @@ class Document(object):
     __metaclass__ = DocumentType
     
     def __init__(self, *args, **kwargs):
+        errors = []
+    
         # are there too many arguments?
         if len(args) > len(self._fields):
             msg = '__init__() takes %d arguments at most (%d given)'
-            raise TypeError(msg % (len(self._fields), len(args)))
+            errors.append(Error(msg % (len(self._fields), len(args))))
 
         field_names = [field.name for field in self._fields]
             
@@ -140,13 +160,13 @@ class Document(object):
         for name in kwargs:
             if name not in field_names:
                 msg = "__init__() does not take keyword argument '%s'"
-                raise TypeError(msg % name)
+                errors.append(Error(msg % name))
        
         # have any fields been defined as both argument and keyword argument?
         for i, name in enumerate(field_names[:len(args)]):
             if name in kwargs:
                 msg = "__init__() received multiple values for '%s' argument"
-                raise TypeError(msg % name)
+                errors.append(Error(msg % name))
             kwargs[name] = args[i]
             
         for field in self._fields:
@@ -154,3 +174,6 @@ class Document(object):
                 setattr(self, field.name, kwargs[field.name])
             else:
                 setattr(self, field.name, field.initial_value)
+                
+        if errors:
+            raise InvalidDocument(*errors)

@@ -84,7 +84,7 @@ class TestModule(unittest.TestCase):
             two = Field()
             three = Field()
             
-        with self.assertRaisesRegexp(TypeError, 'takes 3 arguments'):
+        with self.assertRaisesRegexp(InvalidDocument, 'takes 3 arguments'):
             doc = Doc('one', 'two', 'three', 'four')
         
     def test_set_non_existent_field_via_doc_constructor(self):
@@ -97,7 +97,7 @@ class TestModule(unittest.TestCase):
             two = Field()
             three = Field()
             
-        with self.assertRaisesRegexp(TypeError, 'foo'):
+        with self.assertRaisesRegexp(InvalidDocument, 'foo'):
             doc = Doc(foo='bar')
         
     def test_set_same_field_via_doc_constructor_by_position_and_keyword(self):
@@ -110,8 +110,23 @@ class TestModule(unittest.TestCase):
             two = Field()
             three = Field()
             
-        with self.assertRaisesRegexp(TypeError, 'one'):
+        with self.assertRaisesRegexp(InvalidDocument, 'one'):
             doc = Doc('foo', one='bar')  
+
+    def test_catch_multiple_exceptions_via_doc_constructor(self):
+        """
+        """
+        class Doc(Document):
+            one = Field()
+            two = Field()
+            three = Field()
+            
+        with self.assertRaises(InvalidDocument) as cm:
+            doc = Doc('one', 'two', 'three', 'four', two='foo')
+            
+        self.assertEqual(len(cm.exception.args), 2)
+        self.assertIsInstance(cm.exception.args[0], Error)
+        self.assertIsInstance(cm.exception.args[1], Error)
             
     def test_set_field_to_initial_value_if_not_explicitly_set(self):
         """
