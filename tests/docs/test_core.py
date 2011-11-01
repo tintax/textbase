@@ -280,3 +280,43 @@ class TestModule(unittest.TestCase):
         self.assertEqual(doc.foo, 'line one line two line three')
         self.assertEqual(doc.bar, 'line one line two line three')
 
+    def test_read_and_write_new_document(self):
+        """
+        Check new Document objects are created with an empty body and
+        this can be replaced with a new one.
+        """
+        class Doc(Document):
+            foo = Field()
+            
+        doc = Doc()
+        self.assertEqual(doc.read(), '')
+        doc.write('line one\nline two\n')
+        self.assertEqual(doc.read(), 'line one\nline two\n')
+        
+    def test_read_existing_document(self):
+        """
+        Check body can be read from an existing document.
+        """
+        class Doc(Document):
+            foo = Field()
+            
+        path = self.create_temp_file("""
+            foo: bar
+            
+            This body spans
+            multiple lines.
+            """)
+        doc = Doc.open(path)
+        self.assertEqual(doc.read(), 'This body spans\nmultiple lines.\n')
+        
+    def test_read_existing_document_with_no_body(self):
+        """
+        Check an empty body is read from an existing document without
+        any body text.
+        """
+        class Doc(Document):
+            foo = Field()
+            
+        path = self.create_temp_file('foo: bar')
+        doc = Doc.open(path)
+        self.assertEqual(doc.read(), '')

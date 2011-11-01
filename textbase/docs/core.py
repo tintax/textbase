@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import email.parser
+import io
 
 import validators
 
@@ -212,7 +213,10 @@ class Document(object):
         with open(path, 'r') as stream:
             msg = email.parser.Parser().parse(stream)
         kwargs = dict((k, unfold(v)) for k, v in msg.items())
-        return cls(**kwargs)
+        document = cls(**kwargs)
+        document._path = path
+        document._body = None
+        return document
     
     def __init__(self, *args, **kwargs):
         errors = []
@@ -245,6 +249,34 @@ class Document(object):
                 
         if errors:
             raise InvalidDocument(*errors)
+        
+        self._path = None    
+        self._body = ''
+
+    @property
+    def path(self):
+        return self._path
+
+    def read(self):
+        """
+        Read and return all text from the body until EOF is reached.
+        """
+        if not self._body is None:
+            return self._body
+        with io.open(self.path, 'r') as stream:
+            for line in stream:
+                if line.strip() == '':
+                    break
+            return stream.read()
+            
+    def write(self, text):
+        """
+        Set the body to the supplied text.
+        
+        N.B. The body is not written to disk (if the document was
+        opened from a file) until the document is saved.
+        """
+        self._body = text
             
     def validate(self):
         """
