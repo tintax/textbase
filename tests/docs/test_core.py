@@ -22,23 +22,48 @@ from textbase.docs.core import *
 
 class TestModule(unittest.TestCase):
 
-    def create_temp_file(self, text):
+    def dedent(self, text):
         """
-        Create temporary file with the contents of the supplied string
-        and return the path. The file will be deleted when the test
-        ends.
+        Remove common leading whitespace from every line in text, strip
+        any leading newline, and add a trailing newline if neccesary.
         """
         text = textwrap.dedent(text)
         if text.startswith('\n'):
             text = text.lstrip()
         if not text.endswith('\n'):
             text = text + '\n'
+        return text
+
+    def temp_filename(self):
+        """
+        Create a temporary directory to house a temporary file. Return
+        the path to this file. This directory (and thus file if created)
+        will be deleted when the test ends.
+        """
         temp_dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, temp_dir)
-        path = os.path.join(temp_dir, 'temp.txt')
+        return os.path.join(temp_dir, 'temp.txt')
+
+    def create_temp_file(self, text):
+        """
+        Create temporary file with the contents of the supplied string
+        and return the path. The file will be deleted when the test
+        ends.
+        """
+        text = self.dedent(text)
+        path = self.temp_filename()
         with open(path, 'w') as stream:
             stream.write(text)
         return path
+
+    def assertFileContents(self, path, text):
+        """
+        Assert the contents of the file at the specified path is equal
+        to the supplied text.
+        """
+        text = self.dedent(text)
+        with open(path, 'r') as stream:
+            self.assertEqual(stream.read(), text)
 
     def test_set_and_get_values(self):
         """Check field values can be set and then retrieved"""
@@ -320,3 +345,113 @@ class TestModule(unittest.TestCase):
         path = self.create_temp_file('foo: bar')
         doc = Doc.open(path)
         self.assertEqual(doc.read(), '')
+        
+    def test_save_new_document(self):
+        """
+        Check a new document is saved to disk with the attributes in the
+        right order, attributes wrapped to lines of 72 characters, and
+        the body seperated from the header by a blank line.
+        """
+        class Doc(Document):
+            subject = Field()
+            foo = Field()
+            bar = Field()
+            
+        doc = Doc(foo='bar', bar='foo')
+        doc.subject = 'This subject will be too long to write to the file'
+        doc.subject = doc.subject + ' without being wrapped at the 72'
+        doc.subject = doc.subject + ' character mark (without chopping words)'
+        doc.subject = doc.subject + ' so this will use three lines'
+        doc.write('line one\nline two\nline three\n')
+        path = self.temp_filename()
+        doc.save(path)
+        self.assertEqual(doc.path, path)
+        self.assertFileContents(path, """
+            subject: This subject will be too long to write to the file without
+                being wrapped at the 72 character mark (without chopping words) so
+                this will use three lines
+            foo: bar
+            bar: foo
+            
+            line one
+            line two
+            line three
+            """)
+
+    def test_save_existing_unmodified_document_to_same_file(self):
+        """
+        Check calling save() on an unmodified document leaves the file
+        unchanged.
+        """
+        class Doc(Document):
+            foo = Field()
+            bar = Field()
+            
+        text = """
+            foo: bar
+            bar: foo
+            
+            Hello, World!
+            """
+        path = self.create_temp_file(text)
+        doc = Doc.open(path)
+        doc.save()
+        self.assertEqual(doc.path, path)
+        self.assertFileContents(path, text)
+        
+    def test_save_existing_unmodified_document_to_new_file(self):
+        """
+        Check an existing document can be written to a new file.
+        """
+        class Doc(Document):
+            foo = Field()
+            bar = Field()
+            
+        text = """
+            foo: bar
+            bar: foo
+            
+            Hello, World!
+            """
+        old_path = self.create_temp_file(text)
+        doc = Doc.open(old_path)
+        new_path = self.temp_filename()
+        doc.save(new_path)
+        self.assertEqual(doc.path, new_path)
+        self.assertFileContents(new_path, text)
+
+    def test_save_document_without_body(self):
+        """
+        Check a document without any body can be saved and the resulting
+        file ends immediately after the header.
+        """
+        class Doc(Document):
+            foo = Field()
+            
+        doc = Doc(foo='bar')
+        path = self.temp_filename()
+        doc.save(path)   
+        self.assertFileContents(path, 'foo: bar')
+            
+    def test_unset_fields_are_ignored_when_saving_documents(self):
+        """
+        Check fields for which a value has not been set (including those
+        with a default value) are not written out to the file when the
+        document is saved.
+        """
+        class Doc(Document):
+            foo = Field(initial_value='bar')
+            bar = Field()
+            
+            @bar.defaulter
+            def get_bar_default_value(self):
+                return self.foo + '2'
+                
+        doc = Doc()
+        self.assertEqual(doc.foo, 'bar')  # is set so should be saved
+        self.assertEqual(doc.bar, 'bar2')  # is calculated so shouldn't be
+        path = self.temp_filename()
+        doc.save(path)   
+        self.assertFileContents(path, """
+            foo: bar
+            """)     

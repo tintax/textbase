@@ -12,8 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import unicode_literals
+
 import email.parser
 import io
+import textwrap
 
 import validators
 
@@ -262,7 +265,7 @@ class Document(object):
         Read and return all text from the body until EOF is reached.
         """
         if not self._body is None:
-            return self._body
+            return unicode(self._body)
         with io.open(self.path, 'r') as stream:
             for line in stream:
                 if line.strip() == '':
@@ -292,3 +295,31 @@ class Document(object):
         if errors:
             raise InvalidDocument(*errors)
 
+    def save(self, path=None):
+        """
+        Save the document to disk. Use the supplied path if provided or
+        the existing path if not. Fields are written to the file in the
+        same order as defined on the Document. Only fields with an
+        explicit value are written to the file.
+        
+        Raise a ValueError if a path is not provided and isn't already
+        set on the document.
+        """
+        if not path:
+            path = self.path
+        if not path:
+            raise ValueError('path required')
+        wrapper = textwrap.TextWrapper(width=72, subsequent_indent='    ')
+        body = self.read()
+        with io.open(path, 'w') as stream:
+            for field in self._fields:
+                value = self.__dict__.get(field.name)
+                if value is not None:
+                    line = '%s: %s' % (field.name, value)
+                    stream.write(unicode(wrapper.fill(line)) + '\n')
+            if body:
+                stream.write('\n')
+                stream.write(body)
+                if not body.endswith('\n'):
+                    stream.write('\n')
+        self._path = path
