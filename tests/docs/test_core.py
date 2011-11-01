@@ -12,11 +12,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os.path
+import shutil
+import tempfile
+import textwrap
 import unittest
 
 from textbase.docs.core import *
 
 class TestModule(unittest.TestCase):
+
+    def create_temp_file(self, text):
+        """
+        Create temporary file with the contents of the supplied string
+        and return the path. The file will be deleted when the test
+        ends.
+        """
+        text = textwrap.dedent(text)
+        if text.startswith('\n'):
+            text = text.lstrip()
+        if not text.endswith('\n'):
+            text = text + '\n'
+        temp_dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, temp_dir)
+        path = os.path.join(temp_dir, 'temp.txt')
+        with open(path, 'w') as stream:
+            stream.write(text)
+        return path
 
     def test_set_and_get_values(self):
         """Check field values can be set and then retrieved"""
@@ -221,3 +243,40 @@ class TestModule(unittest.TestCase):
         doc = Doc()
         with self.assertRaises(InvalidDocument):
             doc.validate()
+            
+    def test_open_document_consisting_of_single_attribute(self):
+        """
+        Check a document can be read from a file containing a single
+        attribute.
+        """
+        class Doc(Document):
+            foo = Field()
+            
+        path = self.create_temp_file("""
+            foo: bar
+            """)
+        doc = Doc.open(path)
+        self.assertEqual(doc.foo, 'bar')
+        
+    def test_open_document_consisting_of_folded_attributes(self):
+        """
+        Check a document can be read from a file containing folded
+        attributes (i.e. attributes whose values span more than one
+        line).
+        """
+        class Doc(Document):
+            foo = Field()
+            bar = Field()
+            
+        path = self.create_temp_file("""
+            foo: line one
+                line two
+                line three
+            bar: line one
+              line two
+              line three
+            """)
+        doc = Doc.open(path)
+        self.assertEqual(doc.foo, 'line one line two line three')
+        self.assertEqual(doc.bar, 'line one line two line three')
+

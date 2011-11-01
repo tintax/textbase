@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import email.parser
+
 import validators
 
 class Error(Exception):
@@ -188,6 +190,29 @@ class Document(object):
     """
 
     __metaclass__ = DocumentType
+
+    @classmethod
+    def open(cls, path):
+        """
+        Create and return a Document object from the file at the
+        specified path. Raise an InvalidDocument exception if the file
+        cannot be parsed.
+        """
+        def unfold(value):
+            return_value = ''
+            iterator = iter(value)
+            for char in iterator:
+                if char == '\n':
+                    while char in ' \t\n':
+                        char = iterator.next()
+                    return_value = return_value + ' '
+                return_value = return_value + char
+            return return_value
+            
+        with open(path, 'r') as stream:
+            msg = email.parser.Parser().parse(stream)
+        kwargs = dict((k, unfold(v)) for k, v in msg.items())
+        return cls(**kwargs)
     
     def __init__(self, *args, **kwargs):
         errors = []
