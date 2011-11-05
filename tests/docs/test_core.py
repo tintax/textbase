@@ -19,51 +19,9 @@ import textwrap
 import unittest
 
 from textbase.docs.core import *
+from tests import utils
 
-class TestModule(unittest.TestCase):
-
-    def dedent(self, text):
-        """
-        Remove common leading whitespace from every line in text, strip
-        any leading newline, and add a trailing newline if neccesary.
-        """
-        text = textwrap.dedent(text)
-        if text.startswith('\n'):
-            text = text.lstrip()
-        if not text.endswith('\n'):
-            text = text + '\n'
-        return text
-
-    def temp_filename(self):
-        """
-        Create a temporary directory to house a temporary file. Return
-        the path to this file. This directory (and thus file if created)
-        will be deleted when the test ends.
-        """
-        temp_dir = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, temp_dir)
-        return os.path.join(temp_dir, 'temp.txt')
-
-    def create_temp_file(self, text):
-        """
-        Create temporary file with the contents of the supplied string
-        and return the path. The file will be deleted when the test
-        ends.
-        """
-        text = self.dedent(text)
-        path = self.temp_filename()
-        with open(path, 'w') as stream:
-            stream.write(text)
-        return path
-
-    def assertFileContents(self, path, text):
-        """
-        Assert the contents of the file at the specified path is equal
-        to the supplied text.
-        """
-        text = self.dedent(text)
-        with open(path, 'r') as stream:
-            self.assertEqual(stream.read(), text)
+class TestModule(utils.TestCase):
 
     def test_set_and_get_values(self):
         """Check field values can be set and then retrieved"""
@@ -277,7 +235,7 @@ class TestModule(unittest.TestCase):
         class Doc(Document):
             foo = Field()
             
-        path = self.create_temp_file("""
+        path = self.mktemp("""
             foo: bar
             """)
         doc = Doc.open(path)
@@ -293,7 +251,7 @@ class TestModule(unittest.TestCase):
             foo = Field()
             bar = Field()
             
-        path = self.create_temp_file("""
+        path = self.mktemp("""
             foo: line one
                 line two
                 line three
@@ -325,7 +283,7 @@ class TestModule(unittest.TestCase):
         class Doc(Document):
             foo = Field()
             
-        path = self.create_temp_file("""
+        path = self.mktemp("""
             foo: bar
             
             This body spans
@@ -342,7 +300,7 @@ class TestModule(unittest.TestCase):
         class Doc(Document):
             foo = Field()
             
-        path = self.create_temp_file('foo: bar')
+        path = self.mktemp('foo: bar')
         doc = Doc.open(path)
         self.assertEqual(doc.read(), '')
         
@@ -363,7 +321,7 @@ class TestModule(unittest.TestCase):
         doc.subject = doc.subject + ' character mark (without chopping words)'
         doc.subject = doc.subject + ' so this will use three lines'
         doc.write('line one\nline two\nline three\n')
-        path = self.temp_filename()
+        path = self.mktemp()
         doc.save(path)
         self.assertEqual(doc.path, path)
         self.assertFileContents(path, """
@@ -393,7 +351,7 @@ class TestModule(unittest.TestCase):
             
             Hello, World!
             """
-        path = self.create_temp_file(text)
+        path = self.mktemp(text)
         doc = Doc.open(path)
         doc.save()
         self.assertEqual(doc.path, path)
@@ -413,9 +371,9 @@ class TestModule(unittest.TestCase):
             
             Hello, World!
             """
-        old_path = self.create_temp_file(text)
+        old_path = self.mktemp(text)
         doc = Doc.open(old_path)
-        new_path = self.temp_filename()
+        new_path = self.mktemp()
         doc.save(new_path)
         self.assertEqual(doc.path, new_path)
         self.assertFileContents(new_path, text)
@@ -429,7 +387,7 @@ class TestModule(unittest.TestCase):
             foo = Field()
             
         doc = Doc(foo='bar')
-        path = self.temp_filename()
+        path = self.mktemp()
         doc.save(path)   
         self.assertFileContents(path, 'foo: bar')
             
@@ -450,7 +408,7 @@ class TestModule(unittest.TestCase):
         doc = Doc()
         self.assertEqual(doc.foo, 'bar')  # is set so should be saved
         self.assertEqual(doc.bar, 'bar2')  # is calculated so shouldn't be
-        path = self.temp_filename()
+        path = self.mktemp()
         doc.save(path)   
         self.assertFileContents(path, """
             foo: bar
