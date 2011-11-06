@@ -23,3 +23,16 @@ class IntField(Field):
     def to_python(self, value):
         return int(value)
         
+        
+class BoolField(Field):
+    
+    def to_python(self, value):
+        if value in (True, False):
+            return bool(value)
+        if isinstance(value, basestring):
+            value = value.lower()
+        if value in ('true', 't', 'yes', 'y', '1'):
+            return True
+        if value in ('false', 'f', 'no', 'n', '0'):
+            return False
+        raise ValueError('"%s" cannot be converted to boolean' % value)     

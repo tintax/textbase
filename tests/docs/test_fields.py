@@ -49,3 +49,29 @@ class TestIntField(utils.TestCase, FieldTests):
         ('123', 123),
     )
     invalid_values = ('invalid', '123.4')
+    
+    
+class TestBoolField(utils.TestCase, FieldTests):
+
+    field_class = BoolField
+    values = (
+        ('True', True),
+        ('true', True),
+        ('TRUE', True),
+        ('1', True),
+        ('T', True),
+        ('t', True),
+        ('Yes', True),
+        ('yes', True),
+        ('Y', True),
+        ('False', False),
+        ('false', False),
+        ('FALSE', False),
+        ('0', False),
+        ('F', False),
+        ('f', False),
+        ('No', False),
+        ('no', False),
+        ('N', False),
+    )
+    invalid_values = ('invalid', '2')
