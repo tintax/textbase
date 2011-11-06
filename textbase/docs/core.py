@@ -120,6 +120,16 @@ class Field(object):
         # use an Attribute to manage assigning and retrieving values
         setattr(cls, name, Field.Attribute(self))
 
+    def to_python(self, value):
+        """
+        Convert the supplied value into the expected python type for
+        this field and return the converted value. Raise a ValueError if
+        the data cannot be converted.
+        
+        N.B. Subclasses should override this.
+        """
+        return value
+
     def defaulter(self, function):
         """
         Set the function used to generate a default value. The specified
@@ -246,7 +256,13 @@ class Document(object):
             
         for field in self._fields:
             if field.name in kwargs:
-                setattr(self, field.name, kwargs[field.name])
+                try:
+                    # values read from file are encoded as strings so
+                    # convert to native types as neccessary
+                    value = field.to_python(kwargs[field.name])
+                    setattr(self, field.name, value)
+                except ValueError as e:
+                    errors.append(ValidationError(field.name, str(e)))
             else:
                 setattr(self, field.name, field.initial_value)
                 

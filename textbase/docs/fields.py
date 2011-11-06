@@ -16,3 +16,10 @@ from core import Field
 
 class TextField(Field):
     pass
+    
+    
+class IntField(Field):
+    
+    def to_python(self, value):
+        return int(value)
+        

@@ -21,17 +21,20 @@ class TestIntegration(utils.TestCase):
 
     class Person(Document):
         name = TextField()
+        age = IntField()
         
     def test_new_document(self):
         """
         Create a new document and save to disk.
         """
         person = TestIntegration.Person(name='John Smith')
+        person.age = 32
         person.write('Hello, John!')
         path = self.mktemp()
         person.save(path)
         self.assertFileContents(path, """
             name: John Smith
+            age: 32
             
             Hello, John!
             """)
@@ -42,9 +45,11 @@ class TestIntegration(utils.TestCase):
         """
         path = self.mktemp("""
             name: Jane Doe
+            age: 28
             
             Hello, Jane!
             """)
         person = TestIntegration.Person.open(path)
         self.assertEqual(person.name, 'Jane Doe')
+        self.assertEqual(person.age, 28)
         self.assertEqual(person.read(), 'Hello, Jane!\n')
