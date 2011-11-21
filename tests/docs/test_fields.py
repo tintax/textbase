@@ -180,3 +180,14 @@ class TestUuidField(FieldTests):
     invalid_values = (
         'not-the-right-format',
         )
+        
+    def test_pre_save_generates_valid_auto_value(self):
+        class MockDoc(object):
+            uuid = None
+
+        doc = MockDoc()
+        field = UuidField(auto_create=True)
+        field.name = 'uuid'
+        field.pre_save(doc)
+        self.assertIsNotNone(doc.uuid)
+        field.validate(doc.uuid)

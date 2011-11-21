@@ -14,6 +14,7 @@
 
 from datetime import datetime
 import re
+import uuid
 
 from core import Field
 import validators
@@ -103,6 +104,21 @@ class UuidField(Field):
     Uses a python string internally. The text representation consists of
     32 hexadecimal digits in 5 groups separated by hyphens in the form
     8-4-4-4-12 (e.g. c3ff2d69-4146-4e98-a4ae-d8cfaa742495).
+    
+    Custom parameters:
+      auto_create -- generate a new uuid when the document is saved if
+                     no value has been set by that point?
     """
     
     standard_validators = [validators.uuid]
+    
+    def __init__(self, auto_create=False, *args, **kwargs):
+        self.auto_create = auto_create
+        super(UuidField, self).__init__(*args, **kwargs)
+
+    def pre_save(self, document):
+        if self.auto_create:
+            value = getattr(document, self.name)
+            if value is None:
+                value = str(uuid.uuid4())
+                setattr(document, self.name, value)

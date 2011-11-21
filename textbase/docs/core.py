@@ -184,6 +184,17 @@ class Field(object):
             except ValueError as e:
                 errors.append(ValidationError(self.name, str(e)))
         return errors
+
+    def pre_save(self, document):
+        """
+        This is called just before the supplied document is saved to
+        disk. It is an opportunity to perform any actions which are
+        appropriate at this time (e.g. generate a timestamp or unique
+        identifier for the document).
+
+        N.B. Subclasses may want to override this.        
+        """
+        pass        
         
 
 class DocumentType(type):
@@ -339,6 +350,12 @@ class Document(object):
             path = self.path
         if not path:
             raise ValueError('path required')
+            
+        # notify each field the containing document is about to be saved
+        for field in self._fields:
+            field.pre_save(self)
+
+        # now write the document out to disk
         wrapper = textwrap.TextWrapper(width=72, subsequent_indent='    ')
         body = self.read()
         with io.open(path, 'w') as stream:
