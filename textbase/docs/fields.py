@@ -17,6 +17,7 @@ import re
 import string
 
 from core import Field
+import validators
 
 class TextField(Field):
     pass
@@ -103,3 +104,15 @@ class TagField(Field):
 
     def to_string(self, value):
         return ', '.join(value)
+        
+        
+class UuidField(Field):
+    """
+    A Universally Unique Identifier (UUID).
+    
+    Uses a python string internally. The text representation consists of
+    32 hexadecimal digits in 5 groups separated by hyphens in the form
+    8-4-4-4-12 (e.g. c3ff2d69-4146-4e98-a4ae-d8cfaa742495).
+    """
+    
+    standard_validators = [validators.uuid]

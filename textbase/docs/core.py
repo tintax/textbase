@@ -14,6 +14,7 @@
 
 from __future__ import unicode_literals
 
+from copy import copy
 import email.parser
 import io
 import textwrap
@@ -91,6 +92,10 @@ class Field(object):
             """
             document.__dict__[self.field.name] = value
 
+    # the functions to apply to this type of field to ascertain if the
+    # value held is valid: subclasses should override this
+    standard_validators = []
+
     # if we increment this when Field objects are created then we can
     # track the relative order they are created in: which is also the
     # order they are "declared" on (attached to) a document class
@@ -107,7 +112,7 @@ class Field(object):
         self.initial_value = initial_value
         self.required = required
         self._defaulter = lambda doc: None
-        self._validators = []
+        self._validators = copy(self.standard_validators)
         if self.required:
             self._validators.append(validators.required)
         

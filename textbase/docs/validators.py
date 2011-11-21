@@ -16,6 +16,12 @@ This module provides common validation routines.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 def required(value):
     if value is None:
         raise ValueError('no value for required field')
+        
+def uuid(value):
+    if not re.match('[a-f0-9]{8}-([a-f0-9]{4}-){3}[a-f0-9]{12}', value):
+        raise ValueError('not in uuid format')

@@ -24,6 +24,10 @@ class FieldTests(object):
     py_values = ()   # (python input, string output) tuples
     invalid_values = ()
     
+    # these values are the correct type for this type of field but
+    # should fail validation (e.g. out of range or wrong format)
+    invalid_python_values = ()
+    
     def test_valid_python_conversion(self):
         """
         Check string encodings are converted to expected python type and
@@ -52,6 +56,18 @@ class FieldTests(object):
         field = self.field_class()
         for py_value, str_value in self.py_values:
             self.assertEqual(str_value, field.to_string(py_value)) 
+
+    def test_invalid_python_values(self):
+        """
+        Check validation catches values which are of the right type
+        (i.e. as returned by to_python()) but otherwise invalid (e.g.
+        out of range or in the wrong format). 
+        """
+        field = self.field_class()
+        field.name = 'test'
+        for value in self.invalid_python_values:
+            errors = field.validate(value)
+            self.assertTrue(errors)
             
             
 class TestIntField(utils.TestCase, FieldTests):
@@ -123,3 +139,12 @@ class TestTagField(utils.TestCase, FieldTests):
         'tag with spaces',
         ['valid-tag', 'invalid tag'],
     ) 
+    
+    
+class TestUuidField(utils.TestCase, FieldTests):
+
+    field_class = UuidField
+    
+    invalid_python_values = (
+        'not-the-right-format',
+        )

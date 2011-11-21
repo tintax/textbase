@@ -1,3 +1,3 @@
 from core import Document, Error, ValidationError, InvalidDocument
 
-from fields import TextField, IntField, BoolField, DateTimeField, TagField
+from fields import TextField, IntField, BoolField, DateTimeField, TagField, UuidField

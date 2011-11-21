@@ -21,6 +21,7 @@ from tests import utils
 class TestIntegration(utils.TestCase):
 
     class Person(Document):
+        uuid = UuidField()
         name = TextField()
         age = IntField()
         employed = BoolField()
@@ -32,6 +33,7 @@ class TestIntegration(utils.TestCase):
         Create a new document and save to disk.
         """
         person = TestIntegration.Person(name='John Smith')
+        person.uuid = 'f08a2294-becf-41ee-bcc8-272ded68d3ae'
         person.age = 32
         person.employed = False
         person.married_at = datetime(2011, 11, 13, 13, 30)
@@ -40,6 +42,7 @@ class TestIntegration(utils.TestCase):
         path = self.mktemp()
         person.save(path)
         self.assertFileContents(path, """
+            uuid: f08a2294-becf-41ee-bcc8-272ded68d3ae
             name: John Smith
             age: 32
             employed: False
@@ -54,6 +57,7 @@ class TestIntegration(utils.TestCase):
         Read an existing document from disk.
         """
         path = self.mktemp("""
+            uuid: dcbb43bc-c576-454c-8b4f-64ab6ab97aa8
             name: Jane Doe
             age: 28
             employed: True
@@ -63,6 +67,7 @@ class TestIntegration(utils.TestCase):
             Hello, Jane!
             """)
         person = TestIntegration.Person.open(path)
+        self.assertEqual(person.uuid, 'dcbb43bc-c576-454c-8b4f-64ab6ab97aa8')
         self.assertEqual(person.name, 'Jane Doe')
         self.assertEqual(person.age, 28)
         self.assertIs(person.employed, True)
