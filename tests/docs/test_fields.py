@@ -20,7 +20,8 @@ from tests import utils
 class FieldTests(object):
 
     field_class = None
-    values = ()  # (string, python) tuples
+    str_values = ()  # (string input, python output) tuples
+    py_values = ()   # (python input, string output) tuples
     invalid_values = ()
     
     def test_valid_python_conversion(self):
@@ -30,7 +31,7 @@ class FieldTests(object):
         native type value pair.
         """
         field = self.field_class()
-        for str_value, py_value in self.values:
+        for str_value, py_value in self.str_values:
             self.assertEqual(py_value, field.to_python(py_value))
             self.assertEqual(py_value, field.to_python(str_value))
 
@@ -42,12 +43,21 @@ class FieldTests(object):
         for value in self.invalid_values:
             with self.assertRaises(ValueError):
                 field.to_python(value)
+
+    def test_valid_string_conversion(self):
+        """
+        Check native python types are converted to proper string
+        encoding.
+        """
+        field = self.field_class()
+        for py_value, str_value in self.py_values:
+            self.assertEqual(str_value, field.to_string(py_value)) 
             
             
 class TestIntField(utils.TestCase, FieldTests):
 
     field_class = IntField
-    values = (
+    str_values = (
         ('123', 123),
     )
     invalid_values = ('invalid', '123.4')
@@ -56,7 +66,7 @@ class TestIntField(utils.TestCase, FieldTests):
 class TestBoolField(utils.TestCase, FieldTests):
 
     field_class = BoolField
-    values = (
+    str_values = (
         ('True', True),
         ('true', True),
         ('TRUE', True),
@@ -82,7 +92,7 @@ class TestBoolField(utils.TestCase, FieldTests):
 class TestDateTimeField(utils.TestCase, FieldTests):
 
     field_class = DateTimeField
-    values = (
+    str_values = (
         ('1983-01-27 07:15:00', datetime(1983, 1, 27, 7, 15, 0)),
         ('1983-01-27 07:15', datetime(1983, 1, 27, 7, 15, 0)),
         ('1983-01-27', datetime(1983, 1, 27, 0, 0, 0)),
@@ -93,3 +103,23 @@ class TestDateTimeField(utils.TestCase, FieldTests):
         '1983-01-27 25:12:34',  # not a valid hour
         '1983-01-27 07',        # hour provided but not minutes
     )
+    
+    
+class TestTagField(utils.TestCase, FieldTests):
+
+    field_class = TagField
+    str_values = (
+        ('one', ['one']),
+        ('one, two', ['one', 'two']),
+        ('one, two, three', ['one', 'two', 'three']),
+        ('numb3r', ['numb3r']),
+        ('with-dash', ['with-dash']),
+    )
+    py_values = (
+        (['one'], 'one'),
+        (['one', 'two', 'three'], 'one, two, three'),
+    )
+    invalid_values = (
+        'tag with spaces',
+        ['valid-tag', 'invalid tag'],
+    ) 

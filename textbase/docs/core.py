@@ -130,6 +130,15 @@ class Field(object):
         """
         return value
 
+    def to_string(self, value):
+        """
+        Return a string containing a printable representation of the
+        supplied value.
+
+        N.B. Subclasses may want to override this.
+        """
+        return str(value)
+
     def defaulter(self, function):
         """
         Set the function used to generate a default value. The specified
@@ -331,7 +340,7 @@ class Document(object):
             for field in self._fields:
                 value = self.__dict__.get(field.name)
                 if value is not None:
-                    line = '%s: %s' % (field.name, value)
+                    line = '%s: %s' % (field.name, field.to_string(value))
                     stream.write(unicode(wrapper.fill(line)) + '\n')
             if body:
                 stream.write('\n')

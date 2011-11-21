@@ -14,6 +14,7 @@
 
 from datetime import datetime
 import re
+import string
 
 from core import Field
 
@@ -73,3 +74,32 @@ class DateTimeField(Field):
                 raise ValueError(self.msgs['format'] % value)
             ints.extend(int(x) for x in time.groups() if x)
         return datetime(*ints)
+        
+        
+class TagField(Field):
+    """
+    A list of "tags" (strings containing alphanumeric, dash, or hash
+    characters only).
+    
+    Uses a python list type internally. The tags are separated by commas
+    when represented as a single string.
+    """
+
+    msgs = {
+        'alnum': 'tags must contain alphanumeric or dash characters only'
+        }
+
+    valid_chars = set(string.letters + string.digits + '-')
+
+    def to_python(self, value):
+        if isinstance(value, basestring):
+            tags = list(x.strip() for x in value.split(','))
+        else:
+            tags = list(str(x).strip() for x in value)
+        for tag in tags:
+            if not set(tag).issubset(self.valid_chars):
+                raise ValueError(self.msgs['alnum'])
+        return tags
+
+    def to_string(self, value):
+        return ', '.join(value)

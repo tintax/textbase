@@ -25,6 +25,7 @@ class TestIntegration(utils.TestCase):
         age = IntField()
         employed = BoolField()
         married_at = DateTimeField()
+        hobbies = TagField()
         
     def test_new_document(self):
         """
@@ -34,6 +35,7 @@ class TestIntegration(utils.TestCase):
         person.age = 32
         person.employed = False
         person.married_at = datetime(2011, 11, 13, 13, 30)
+        person.hobbies = ['reading', 'writing', 'maths']
         person.write('Hello, John!')
         path = self.mktemp()
         person.save(path)
@@ -42,6 +44,7 @@ class TestIntegration(utils.TestCase):
             age: 32
             employed: False
             married_at: 2011-11-13 13:30:00
+            hobbies: reading, writing, maths
             
             Hello, John!
             """)
@@ -55,6 +58,7 @@ class TestIntegration(utils.TestCase):
             age: 28
             employed: True
             married_at: 2000-01-02 07:10:59
+            hobbies: bowls, the-internet
             
             Hello, Jane!
             """)
@@ -63,4 +67,5 @@ class TestIntegration(utils.TestCase):
         self.assertEqual(person.age, 28)
         self.assertIs(person.employed, True)
         self.assertEqual(person.married_at, datetime(2000, 1, 2, 7, 10, 59))
+        self.assertEqual(person.hobbies, ['bowls', 'the-internet'])
         self.assertEqual(person.read(), 'Hello, Jane!\n')
