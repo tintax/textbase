@@ -17,6 +17,7 @@ This module provides common validation routines.
 # limitations under the License.
 
 import re
+import string
 
 def required(value):
     if value is None:
@@ -25,3 +26,13 @@ def required(value):
 def uuid(value):
     if not re.match('[a-f0-9]{8}-([a-f0-9]{4}-){3}[a-f0-9]{12}', value):
         raise ValueError('not in uuid format')
+        
+def tag_sequence(value):
+    """
+    Check value is a sequence of strings consisting solely of
+    alphanumeric or dash characters.
+    """
+    valid_chars = set(string.letters + string.digits + '-')
+    for item in value:
+        if not set(item).issubset(valid_chars):
+            raise ValueError('alphanumeric or dash characters only')

@@ -17,72 +17,91 @@ from datetime import datetime
 from textbase.docs.fields import *
 from tests import utils
 
-class FieldTests(object):
+class FieldTests(utils.TestCase):
 
+    # the type of field under test
     field_class = None
-    str_values = ()  # (string input, python output) tuples
-    py_values = ()   # (python input, string output) tuples
+
+    # the field should be able to successfully convert these to it's
+    # native type (n.b. these are only used to check type conversion
+    # and not if the value is valid) -- (input, expected output) tuples
+    valid_encodings = ()
+
+    # the field should fail to convert these to it's native type
+    invalid_encodings = ()
+
+    # these values (native type) should pass validation and be
+    # successfully converted to a string representation -- (input,
+    # expected output) tuples
+    valid_values = ()
+
+    # these values (native type) should fail validation
     invalid_values = ()
     
-    # these values are the correct type for this type of field but
-    # should fail validation (e.g. out of range or wrong format)
-    invalid_python_values = ()
-    
-    def test_valid_python_conversion(self):
-        """
-        Check string encodings are converted to expected python type and
-        the expected types are "converted" untouched for each string /
-        native type value pair.
-        """
-        field = self.field_class()
-        for str_value, py_value in self.str_values:
-            self.assertEqual(py_value, field.to_python(py_value))
-            self.assertEqual(py_value, field.to_python(str_value))
+    def setUp(self):
+        if self.field_class:
+            self.field = self.field_class()
+            self.field.name = 'test'
 
-    def test_invalid_python_conversion(self):
+    def test_convert_valid_encoding_to_native_type(self):
         """
-        Check a ValueError is raised for each invalid test value.
+        Check the field can convert valid input types (particularly
+        string representations as read from file) to it's native type. 
         """
-        field = self.field_class()
-        for value in self.invalid_values:
+        for encoding, native_value in self.valid_encodings:
+            self.assertEqual(native_value, self.field.to_python(encoding))
+
+    def test_convert_invalid_encoding_to_native_type(self):
+        """
+        Check the field fails to convert invalid input types to it's
+        native type.
+        """
+        for encoding in self.invalid_encodings:
             with self.assertRaises(ValueError):
-                field.to_python(value)
+                self.field.to_python(encoding)
+    
+    def test_validate_valid_values(self):
+        """
+        Check valid values pass the standard validation checks for the
+        field.
+        """
+        for value, encoding in self.valid_values:
+            errors = self.field.validate(value)
+            self.assertFalse(errors)
 
-    def test_valid_string_conversion(self):
+    def test_validate_invalid_values(self):
         """
-        Check native python types are converted to proper string
-        encoding.
+        Check the field fails to validate invalid values.
         """
-        field = self.field_class()
-        for py_value, str_value in self.py_values:
-            self.assertEqual(str_value, field.to_string(py_value)) 
-
-    def test_invalid_python_values(self):
-        """
-        Check validation catches values which are of the right type
-        (i.e. as returned by to_python()) but otherwise invalid (e.g.
-        out of range or in the wrong format). 
-        """
-        field = self.field_class()
-        field.name = 'test'
-        for value in self.invalid_python_values:
-            errors = field.validate(value)
+        for value in self.invalid_values:
+            errors = self.field.validate(value)
             self.assertTrue(errors)
-            
-            
-class TestIntField(utils.TestCase, FieldTests):
+
+    def test_convert_valid_native_type_to_string_encoding(self):
+        """
+        Check the field can convert from it's native type to a string
+        representation (for writing to file).
+        """
+        for value, encoding in self.valid_values:
+            self.assertEqual(encoding, self.field.to_string(value))
+
+    
+class TestIntField(FieldTests):
 
     field_class = IntField
-    str_values = (
+
+    valid_encodings = (
         ('123', 123),
-    )
-    invalid_values = ('invalid', '123.4')
-    
-    
-class TestBoolField(utils.TestCase, FieldTests):
+        )
+
+    invalid_encodings = ('invalid', '123.4')
+
+
+class TestBoolField(FieldTests):
 
     field_class = BoolField
-    str_values = (
+
+    valid_encodings = (
         ('True', True),
         ('true', True),
         ('TRUE', True),
@@ -101,50 +120,63 @@ class TestBoolField(utils.TestCase, FieldTests):
         ('No', False),
         ('no', False),
         ('N', False),
-    )
-    invalid_values = ('invalid', '2')
-    
-    
-class TestDateTimeField(utils.TestCase, FieldTests):
+        (True, True),
+        (False, False),
+        )
+
+    invalid_encodings = ('invalid', '2')
+
+
+class TestDateTimeField(FieldTests):
 
     field_class = DateTimeField
-    str_values = (
+
+    valid_encodings = (
         ('1983-01-27 07:15:00', datetime(1983, 1, 27, 7, 15, 0)),
         ('1983-01-27 07:15', datetime(1983, 1, 27, 7, 15, 0)),
         ('1983-01-27', datetime(1983, 1, 27, 0, 0, 0)),
-    )
-    invalid_values = (
+        )
+
+    invalid_encodings = (
         'invalid',
         '1983-13-27 19:45:00',  # not a valid month
         '1983-01-27 25:12:34',  # not a valid hour
         '1983-01-27 07',        # hour provided but not minutes
-    )
-    
-    
-class TestTagField(utils.TestCase, FieldTests):
+        )
+
+
+class TestTagField(FieldTests):
 
     field_class = TagField
-    str_values = (
+
+    valid_encodings = (
         ('one', ['one']),
         ('one, two', ['one', 'two']),
         ('one, two, three', ['one', 'two', 'three']),
         ('numb3r', ['numb3r']),
         ('with-dash', ['with-dash']),
-    )
-    py_values = (
+        )
+
+    valid_values = (
         (['one'], 'one'),
         (['one', 'two', 'three'], 'one, two, three'),
-    )
+        (['with-dash'], 'with-dash'),
+        )
+
     invalid_values = (
-        'tag with spaces',
-        ['valid-tag', 'invalid tag'],
-    ) 
-    
-    
-class TestUuidField(utils.TestCase, FieldTests):
+        ['tag with spaces'],
+        ['#hashtag'],
+        ) 
+
+class TestUuidField(FieldTests):
 
     field_class = UuidField
+
+    valid_values = (
+        ('e579dd7d-d595-4ea8-bed6-9b025130c471', 'e579dd7d-d595-4ea8-bed6-9b025130c471'),
+        ('fe671f59-968e-4f7b-b1bc-d2f0e3f8569c', 'fe671f59-968e-4f7b-b1bc-d2f0e3f8569c'),
+        )
     
-    invalid_python_values = (
+    invalid_values = (
         'not-the-right-format',
         )
