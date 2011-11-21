@@ -61,6 +61,11 @@ class DateTimeField(Field):
         'format': '"%s" not in "YYYY-MM-DD [HH:MM[:SS]]" format',
         }
 
+    def __init__(self, auto_create=False, auto_update=False, *args, **kwargs):
+        self.auto_create = auto_create
+        self.auto_update = auto_update
+        super(DateTimeField, self).__init__(*args, **kwargs)
+
     def to_python(self, value):
         if isinstance(value, datetime):
             return value
@@ -75,7 +80,14 @@ class DateTimeField(Field):
                 raise ValueError(self.msgs['format'] % value)
             ints.extend(int(x) for x in time.groups() if x)
         return datetime(*ints)
-        
+
+    def pre_save(self, document):
+        if not (self.auto_create or self.auto_update):
+            return
+        if self.auto_create and getattr(document, self.name):
+            return
+        setattr(document, self.name, datetime.utcnow())
+                
         
 class TagField(Field):
     """

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from datetime import timedelta
 import os
 import shutil
 import tempfile
@@ -72,3 +73,13 @@ class TestCase(unittest.TestCase):
         text = self.dedent(text)
         with open(path, 'r') as stream:
             self.assertEqual(stream.read(), text)
+            
+    def assertTimeGap(self, time1, time2, delta):
+        """
+        Assert the difference between time1 and time2 is within delta
+        seconds.
+        """
+        if time1 < time2:
+            self.assertLess(time2 - time1, timedelta(seconds=delta))
+        else:
+            self.assertLess(time1 - time2, timedelta(seconds=delta))

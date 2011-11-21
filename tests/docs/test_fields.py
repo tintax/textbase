@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from textbase.docs.fields import *
 from tests import utils
@@ -143,6 +143,50 @@ class TestDateTimeField(FieldTests):
         '1983-01-27 25:12:34',  # not a valid hour
         '1983-01-27 07',        # hour provided but not minutes
         )
+
+    def test_pre_save_generates_creation_value_when_unset(self):
+        """
+        Check pre_save() generates a valid date and time stamp for
+        auto_create fields when the field is unset.
+        """
+        class MockDoc(object):
+            created_at = None
+
+        doc = MockDoc()
+        field = DateTimeField(auto_create=True)
+        field.name = 'created_at'            
+
+        # current timestamp should be generated as field is unset
+        field.pre_save(doc)
+        self.assertTimeGap(datetime.utcnow(), doc.created_at, 2)
+        field.validate(doc.created_at)
+        
+        # timestamp should not be updated on subsequent saves
+        original = doc.created_at
+        field.pre_save(doc)
+        self.assertEqual(original, doc.created_at)
+
+    def test_pre_save_always_updates_modification_value(self):
+        """
+        Check pre_save() generates a valid date and time stamp each time
+        for "auto_update" fields.
+        """
+        class MockDoc(object):
+            modified_at = None
+
+        doc = MockDoc()
+        field = DateTimeField(auto_update=True)
+        field.name = 'modified_at'
+
+        # timestamp should be set to current date and time
+        field.pre_save(doc)
+        self.assertTimeGap(datetime.utcnow(), doc.modified_at, 2)
+        field.validate(doc.modified_at)
+
+        # timestamp should be updated - albeit not by much!
+        original = doc.modified_at
+        field.pre_save(doc)
+        self.assertNotEqual(original, doc.modified_at)
 
 
 class TestTagField(FieldTests):
