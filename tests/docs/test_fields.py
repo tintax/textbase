@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from datetime import datetime
+
 from textbase.docs.fields import *
 from tests import utils
 
@@ -75,3 +77,19 @@ class TestBoolField(utils.TestCase, FieldTests):
         ('N', False),
     )
     invalid_values = ('invalid', '2')
+    
+    
+class TestDateTimeField(utils.TestCase, FieldTests):
+
+    field_class = DateTimeField
+    values = (
+        ('1983-01-27 07:15:00', datetime(1983, 1, 27, 7, 15, 0)),
+        ('1983-01-27 07:15', datetime(1983, 1, 27, 7, 15, 0)),
+        ('1983-01-27', datetime(1983, 1, 27, 0, 0, 0)),
+    )
+    invalid_values = (
+        'invalid',
+        '1983-13-27 19:45:00',  # not a valid month
+        '1983-01-27 25:12:34',  # not a valid hour
+        '1983-01-27 07',        # hour provided but not minutes
+    )

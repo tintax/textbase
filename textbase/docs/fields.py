@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from datetime import datetime
+import re
+
 from core import Field
 
 class TextField(Field):
@@ -36,3 +39,37 @@ class BoolField(Field):
         if value in ('false', 'f', 'no', 'n', '0'):
             return False
         raise ValueError('"%s" cannot be converted to boolean' % value)     
+        
+        
+class DateTimeField(Field):
+
+    """
+    A combined date and time representation of a single point in time.
+
+    Uses a naive datetime.datetime python type to represent the
+    timestamp internally. The value must have a date and optionally a
+    time if converted from a string representation. If time is provided
+    it must specify the hours and minutes and optionally seconds. 
+    """
+
+    date_re = re.compile('(\d{4})-(\d\d)-(\d\d)(.*)')
+    time_re = re.compile('(\d\d):(\d\d)(?::(\d\d))?')
+
+    msgs = {
+        'format': '"%s" not in "YYYY-MM-DD [HH:MM[:SS]]" format',
+        }
+
+    def to_python(self, value):
+        if isinstance(value, datetime):
+            return value
+        date = self.date_re.match(value.strip())
+        if not date:
+            raise ValueError(self.msgs['format'] % value)
+        ints = list(int(x) for x in date.group(1,2,3))
+        time_str = date.group(4).strip()
+        if time_str:
+            time = self.time_re.match(time_str)
+            if not time:
+                raise ValueError(self.msgs['format'] % value)
+            ints.extend(int(x) for x in time.groups() if x)
+        return datetime(*ints)

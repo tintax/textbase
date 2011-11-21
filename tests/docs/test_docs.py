@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from datetime import datetime
 import unittest
 
 from textbase.docs import *
@@ -23,6 +24,7 @@ class TestIntegration(utils.TestCase):
         name = TextField()
         age = IntField()
         employed = BoolField()
+        married_at = DateTimeField()
         
     def test_new_document(self):
         """
@@ -31,6 +33,7 @@ class TestIntegration(utils.TestCase):
         person = TestIntegration.Person(name='John Smith')
         person.age = 32
         person.employed = False
+        person.married_at = datetime(2011, 11, 13, 13, 30)
         person.write('Hello, John!')
         path = self.mktemp()
         person.save(path)
@@ -38,6 +41,7 @@ class TestIntegration(utils.TestCase):
             name: John Smith
             age: 32
             employed: False
+            married_at: 2011-11-13 13:30:00
             
             Hello, John!
             """)
@@ -50,6 +54,7 @@ class TestIntegration(utils.TestCase):
             name: Jane Doe
             age: 28
             employed: True
+            married_at: 2000-01-02 07:10:59
             
             Hello, Jane!
             """)
@@ -57,4 +62,5 @@ class TestIntegration(utils.TestCase):
         self.assertEqual(person.name, 'Jane Doe')
         self.assertEqual(person.age, 28)
         self.assertIs(person.employed, True)
+        self.assertEqual(person.married_at, datetime(2000, 1, 2, 7, 10, 59))
         self.assertEqual(person.read(), 'Hello, Jane!\n')
