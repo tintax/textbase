@@ -235,3 +235,17 @@ class TestUuidField(FieldTests):
         field.pre_save(doc)
         self.assertIsNotNone(doc.uuid)
         field.validate(doc.uuid)
+        
+    def test_pre_save_only_generates_value_if_unset(self):
+        """
+        Check an automatic value is only generated when the field is
+        unset.
+        """
+        class MockDoc(object):
+            uuid = 'fe671f59-968e-4f7b-b1bc-d2f0e3f8569c'
+
+        doc = MockDoc()
+        field = UuidField(auto_create=True)
+        field.name = 'uuid'
+        field.pre_save(doc)
+        self.assertEqual('fe671f59-968e-4f7b-b1bc-d2f0e3f8569c', doc.uuid)
